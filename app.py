@@ -1,91 +1,84 @@
-from __future__ import division, print_function
-# coding=utf-8
-import sys
 import os
-import glob
-import re
-import numpy as np
-import json
+import flask
+from PIL import Image
+from tensorflow import keras
+from flask import Flask , render_template  , request , send_file,  jsonify
 
-# Keras
-from keras.models import load_model
-from keras.applications.densenet import decode_predictions, preprocess_input
-
-from keras.utils import load_img, img_to_array
-
-# Flask utils
-from flask import Flask, redirect, url_for, request, render_template
-from werkzeug.utils import secure_filename
-# from gevent.pywsgi import WSGIServer
-
-print("successfully running")
-
-# kode github
- 
- # Define a flask app
 app = Flask(__name__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+model = keras.models.load_model(os.path.join(BASE_DIR , 'model.h5'))
 
-# Model saved with Keras model.save()
-MODEL_PATH = 'models/model.pth'
+ALLOWED_EXT = set(['jpg' , 'jpeg' , 'png' , 'jfif'])
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1] in ALLOWED_EXT
 
-# Load your trained model
-model = load_model(MODEL_PATH)
-# model._make_predict_function()          # Necessary
-# print('Model loaded. Start serving...')
+def load_image(filename):
+    img = keras.preprocessing.image.load_img(filename, target_size=(128, 128))
+    img = keras.preprocessing.image.img_to_array(img)
+    img = img.reshape(-1, 128, 128, 3)
+    img = img.astype('float32')
+    img = img / 255.0
+    return img
 
-print('Model loaded. Check http://127.0.0.1:5000/')
+def predictfunc(filename, model):
+    # Load the Image
+    img = load_image(filename)
+    # Load Model
+    # Predict the Class/Label
+    result = model.predict(img)
+    class_index = result.argmax(axis=-1)[0] # get the index of the max value in the result array
+
+    flower = ""
+
+    if class_index == 0:
+        flower =  "Cattleya"
+    elif class_index == 1:
+        flower =  "Dendrobium"
+    elif class_index == 2:
+        flower =  "Oncidium"
+    elif class_index == 3:
+        flower =  "Phalaenopsis"
+    elif class_index == 4:
+        flower =  "Vanda"
+
+    return flower
+
+@app.route('/')
+def home():
+        
+        return render_template("index.html")
+
+@app.route('/success' , methods = ['POST'])
+def success():
+
+    if 'file' not in request.files:
+        return 'No file uploaded', 400
+
+    error = ''
+    target_img = os.path.join(os.getcwd() , 'uploads')
+
+    file = request.files['file']
+    if file and allowed_file(file.filename):
+        file.save(os.path.join(target_img , file.filename))
+        img_path = os.path.join(target_img , file.filename)
+        img = file.filename
+
+        res_pred = predictfunc(img_path , model)
+
+    data = {
+        'flower' : res_pred,
+        'success' : True,
+        'message' : 'Register successfully',
+    }
+
+    if(len(error) == 0):
+        return  jsonify(data), 200
+    else:
+        return "error bang"
 
 
-def model_predict(img_path, model):
-    # img = image.load_img(img_path, target_size=(224, 224))
-    print("pass modell_predict function")
-    img = load_img(img_path, target_size=(100, 100, 3))
-
-    # Preprocessing the image
-    # x = image.img_to_array(img)
-    img = img_to_array(img)
-    img = img/255.0
-    prediction_image = np.array(img)
-    prediction_image = np.expand_dims(prediction_image, axis=0)
-    # prediction_image = preprocess_input(prediction_image)
+if __name__ == "__main__":
+    app.run(debug = True)
 
 
-    preds = model.predict(prediction_image)
-    print(preds)
-    return preds
-
-
-Name = ['cattleya', 'dendrobium', 'oncidium', 'phalaenopsis', 'vanda']
-N=[]
-for i in range(len(Name)):
-    N+=[i]
-reverse_mapping=dict(zip(N,Name)) 
-def mapper(value):
-    return reverse_mapping[value]
-
-@app.route('/predict', methods=['GET', 'POST'])
-def upload():
-    if request.method == 'POST':
-        # Get the file from post request
-        f = request.files['file']
-
-        # Save the file to ./uploads
-        basepath = os.path.dirname(__file__)
-        file_path = os.path.join(
-            basepath, 'uploads', secure_filename(f.filename))
-        f.save(file_path)
-
-        # Make prediction
-        preds = model_predict(file_path, model)
-
-        value = np.argmax(preds)
-        move_name = mapper(value)
-        result = "predictions is {}.".format(move_name)
-        result = json.dumps(result)
-        print(value)
-        return result
-    return None
-
-
-if __name__ == '__main__':
-    app.run(debug=True)
