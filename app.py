@@ -30,7 +30,6 @@ def predictfunc(filename, model):
     class_index = result.argmax(axis=-1)[0] # get the index of the max value in the result array
 
     flower = ""
-
     if class_index == 0:
         flower =  "Cattleya"
     elif class_index == 1:
@@ -46,12 +45,10 @@ def predictfunc(filename, model):
 
 @app.route('/')
 def home():
-        
         return render_template("index.html")
 
 @app.route('/success' , methods = ['POST'])
 def success():
-
     if 'file' not in request.files:
         return 'No file uploaded', 400
 
@@ -69,13 +66,13 @@ def success():
     data = {
         'flower' : res_pred,
         'success' : True,
-        'message' : 'Register successfully',
+        'message' : 'Predict successfully',
     }
 
     if(len(error) == 0):
         return  jsonify(data), 200
     else:
-        return "error bang"
+        return 'error', 400
 
 
 if __name__ == "__main__":
