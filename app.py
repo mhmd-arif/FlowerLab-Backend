@@ -29,26 +29,49 @@ def predictfunc(filename, model):
     result = model.predict(img)
     class_index = result.argmax(axis=-1)[0] # get the index of the max value in the result array
 
-    flower = ""
-    if class_index == 0:
-        flower =  "Cattleya"
-    elif class_index == 1:
-        flower =  "Dendrobium"
-    elif class_index == 2:
-        flower =  "Oncidium"
-    elif class_index == 3:
-        flower =  "Phalaenopsis"
-    elif class_index == 4:
-        flower =  "Vanda"
+    DEFAULT_IMG = "https://thumbs.dreamstime.com/b/pink-orchid-19433470.jpg"
 
-    return flower
+    if class_index == 0:
+        genus =  "Cattleya"
+        family = "Orchidaceae"
+        description = "deskripsi bunga anggrek jenis Cattleya"
+        imageUrl = DEFAULT_IMG
+    elif class_index == 1:
+        genus =  "Dendrobium"
+        family = "Orchidaceae"
+        description = "deskripsi bunga anggrek jenis Dendrobium"
+        imageUrl = DEFAULT_IMG
+    elif class_index == 2:
+        genus =  "Oncidium"
+        family = "Orchidaceae"
+        description = "deskripsi bunga anggrek jenis Oncidium"
+        imageUrl = DEFAULT_IMG
+    elif class_index == 3:
+        genus =  "Phalaenopsis"
+        family = "Orchidaceae"
+        description = "deskripsi bunga anggrek jenis Phalaenopsis"
+        imageUrl = DEFAULT_IMG
+    elif class_index == 4:
+        genus =  "Vanda"
+        family = "Orchidaceae"
+        description = "deskripsi bunga anggrek jenis Vanda"
+        imageUrl = DEFAULT_IMG
+
+    data = {
+        'genus' : genus,
+        'family' : family,
+        'description' : description,
+        'imageUrl' : imageUrl,
+    }
+
+    return data
 
 @app.route('/')
 def home():
         return render_template("index.html")
 
-@app.route('/success' , methods = ['POST'])
-def success():
+@app.route('/predict-image' , methods = ['POST'])
+def predictImage():
     if 'file' not in request.files:
         return 'No file uploaded', 400
 
@@ -64,7 +87,7 @@ def success():
         res_pred = predictfunc(img_path , model)
 
     data = {
-        'flower' : res_pred,
+        'flower_data' : res_pred,
         'success' : True,
         'message' : 'Predict successfully',
     }
@@ -73,7 +96,6 @@ def success():
         return  jsonify(data), 200
     else:
         return 'error', 400
-
 
 if __name__ == "__main__":
     app.run(debug = True)
