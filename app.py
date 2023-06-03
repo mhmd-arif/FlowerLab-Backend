@@ -68,7 +68,7 @@ def predictfunc(filename, model):
 
 @app.route('/')
 def home():
-        return render_template("index.html")
+        return "flowerLab AI predict API"
 
 @app.route('/predict-image' , methods = ['POST'])
 def predictImage():
